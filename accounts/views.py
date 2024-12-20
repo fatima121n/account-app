@@ -3,8 +3,7 @@ from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import CreateAPIView
-from rest_framework.views import APIView
-from .serializers import PasswordResetRequestSerializer, UserRegistrationSerializer
+from .serializers import PasswordResetRequestSerializer, UserRegistrationSerializer, PasswordResetVerifySerializer
 
 
 class RegisterUserView(CreateAPIView):
@@ -20,7 +19,8 @@ class RegisterUserView(CreateAPIView):
 
 
 
-class PasswordResetRequestView(APIView):
+class PasswordResetRequestView(CreateAPIView):
+    serializer_class = PasswordResetRequestSerializer
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         if serializer.is_valid():
@@ -28,14 +28,29 @@ class PasswordResetRequestView(APIView):
             user = data['user']
             token = data['token']
 
-            send_mail(
-                subject='Password Reset Token',
-                message=f'Your reset token is: {token}',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-            )
-
+            try:
+                send_mail(
+                    subject='Password Reset Token',
+                    message=f'Your reset token is: {token}',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                )
+            except Exception as e:
+                return Response({'message': 'Failed to send email'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
             return Response({'message': 'Reset token sent to your email'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
 
+# New
+class PasswordResetVerifyView(CreateAPIView):
+    serializer_class = PasswordResetVerifySerializer
+    def post(self, request):
+        serializer = PasswordResetVerifySerializer(data=request.data)
+
+        if serializer.is_valid():
+            return Response({'message': 'Token is valid'}, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
