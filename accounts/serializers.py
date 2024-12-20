@@ -1,48 +1,56 @@
-from django.contrib.auth.hashers import make_password
+from django.utils.timezone import now 
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-from . models import User
+from . models import PasswordResetToken, User
+from django.core.exceptions import ObjectDoesNotExist
+import random
 
-# User Serializer
-class UserSerializer(serializers.ModelSerializer):
-    password2 = serializers.CharField(write_only=True)
 
+
+class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'password2', 'first_name', 'last_name']
-        extra_kwargs = {
-            'password': {'write_only': True},
-        }
-
-    def validate(self, data):
-        if data['password'] != data['password2']:
-            raise serializers.ValidationError({"password": "Passwords do not match"})
-        return data
+        fields = ['email', 'password']
+        extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        validated_data.pop('password2')  # Remove password2 as it’s not required for saving
-        return User.objects.create_user(**validated_data)
+        user = User.objects.create_user(**validated_data)
+        return user
+
+
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        try:
+            user = User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist.")
+        return value
+    
+    def save(self):
+        email = self.validated_data['email']
+        try:
+            user = User.objects.get(email=email)  # Fetch the user object
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist.")
+
+        token = random.randint(100000, 999999)  # Generate a 6-digit token
+        PasswordResetToken.objects.update_or_create(user=user, defaults={'token': token})
+        
+        return {"user": user, "token": token}
+
+
+    
+       
+
+
+
+
+
+
+        
     
 
-
-class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True)
-    password = serializers.CharField(required=True, write_only=True)
-
-    def validate(self, data):
-        username = data.get('username')
-        password = data.get('password')
-
-        if username and password:
-            user = authenticate(username=username, password=password)
-            if user:
-                if user.is_active:
-                    data['user'] = user
-                else:
-                    raise serializers.ValidationError("This user is inactive.")
-            else:
-                raise serializers.ValidationError("Invalid credentials.")
-        else:
-            raise serializers.ValidationError("Both username and password are required.")
-
-        return data
