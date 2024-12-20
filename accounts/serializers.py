@@ -1,9 +1,6 @@
-from django.utils.timezone import now 
-from django.contrib.auth import authenticate
 from rest_framework import serializers
-from . models import PasswordResetToken, User
+from . models import PasswordResetToken, User, generate_token
 from django.core.exceptions import ObjectDoesNotExist
-import random
 
 
 
@@ -25,22 +22,25 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         try:
-            user = User.objects.get(email=value)
+            User.objects.get(email=value)
         except User.DoesNotExist:
             raise serializers.ValidationError("User with this email does not exist.")
         return value
     
+
     def save(self):
         email = self.validated_data['email']
         try:
-            user = User.objects.get(email=email)  # Fetch the user object
+            user = User.objects.get(email=email)
         except ObjectDoesNotExist:
             raise serializers.ValidationError("User with this email does not exist.")
 
-        token = random.randint(100000, 999999)  # Generate a 6-digit token
+        # Using the generate_token function from the models
+        token = generate_token()
         PasswordResetToken.objects.update_or_create(user=user, defaults={'token': token})
         
         return {"user": user, "token": token}
+
 
 
     
