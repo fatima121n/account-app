@@ -1,6 +1,6 @@
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from . models import PasswordResetToken, User, generate_token
-from django.core.exceptions import ObjectDoesNotExist
 
 
 
@@ -18,7 +18,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    email = serializers.EmailField()     
 
     def validate_email(self, value):
         try:
@@ -26,6 +26,9 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         except User.DoesNotExist:
             raise serializers.ValidationError("User with this email does not exist.")
         return value
+    
+
+
     
 
     def save(self):
@@ -42,8 +45,31 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         return {"user": user, "token": token}
 
 
+# New
+class PasswordResetVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    token = serializers.IntegerField()
 
-    
+    def validate(self, data):
+        email = data['email']
+        token = data['token']
+
+        try:
+           user = User.objects.get(email=email)
+           reset_token = PasswordResetToken.objects.get(user=user)
+        except ObjectDoesNotExist():
+           raise serializers.ValidationError("Invalid email or token.")
+       
+        token_status = reset_token.verify_token(token)
+        if token_status == "Valid":
+            return data
+        elif token_status == "Expired":
+            raise serializers.ValidationError("Token has expired.")
+        else:
+            raise serializers.ValidationError("Token is invalid.")
+
+
+
        
 
 
