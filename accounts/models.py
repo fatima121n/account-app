@@ -1,8 +1,8 @@
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
 import random
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
 
 class UserManager(BaseUserManager):
@@ -29,8 +29,8 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
-    is_staff = models.BooleanField(default=False)  # Added field
-    is_superuser = models.BooleanField(default=False)  # Added field
+    is_staff = models.BooleanField(default=False)  
+    is_superuser = models.BooleanField(default=False)  
 
     USERNAME_FIELD = 'email'
   
@@ -39,6 +39,12 @@ class User(AbstractBaseUser):
 
     def __str__(self):
         return self.email
+    
+    def has_perm(self, perm, obj=None):
+        return self.is_superuser
+    
+    def has_module_perms(self, app_label):
+        return self.is_superuser
 
 
 def generate_token():
@@ -57,6 +63,15 @@ class PasswordResetToken(models.Model):
 
     def is_valid(self):
         return timezone.now() < self.expires_at
+    
+    # New
+    def verify_token(self, token):
+        if self.token != token:
+            return "Invalid"
+        elif timezone.now() > self.expires_at:
+            return "Expired"
+        else:
+            return "Valid"
 
     def save(self, *args, **kwargs):
         if not self.expires_at:
