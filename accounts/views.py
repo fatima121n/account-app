@@ -18,7 +18,6 @@ class RegisterUserView(CreateAPIView):
 
 
 
-
 class PasswordResetRequestView(CreateAPIView):
     serializer_class = PasswordResetRequestSerializer
     def post(self, request):
@@ -42,8 +41,6 @@ class PasswordResetRequestView(CreateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
-
-# New
 class PasswordResetVerifyView(CreateAPIView):
     serializer_class = PasswordResetVerifySerializer
     def post(self, request):

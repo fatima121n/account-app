@@ -2,8 +2,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from . models import PasswordResetToken, User, generate_token
 
-
-
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -16,7 +14,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 
 
-
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()     
 
@@ -26,26 +23,23 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         except User.DoesNotExist:
             raise serializers.ValidationError("User with this email does not exist.")
         return value
-    
-
-
-    
 
     def save(self):
         email = self.validated_data['email']
         try:
             user = User.objects.get(email=email)
-        except ObjectDoesNotExist:
+            # Delete old tokens
+            PasswordResetToken.objects.filter(user=user).delete()
+            # Generate and save a new token
+            token = generate_token()
+            reset_token = PasswordResetToken.objects.create(user=user, token=token)
+
+            return {"user": user, "token": token}
+        except User.DoesNotExist:
             raise serializers.ValidationError("User with this email does not exist.")
 
-        # Using the generate_token function from the models
-        token = generate_token()
-        PasswordResetToken.objects.update_or_create(user=user, defaults={'token': token})
-        
-        return {"user": user, "token": token}
 
 
-# New
 class PasswordResetVerifySerializer(serializers.Serializer):
     email = serializers.EmailField()
     token = serializers.IntegerField()
@@ -57,7 +51,7 @@ class PasswordResetVerifySerializer(serializers.Serializer):
         try:
            user = User.objects.get(email=email)
            reset_token = PasswordResetToken.objects.get(user=user)
-        except ObjectDoesNotExist():
+        except ObjectDoesNotExist:
            raise serializers.ValidationError("Invalid email or token.")
        
         token_status = reset_token.verify_token(token)
@@ -67,16 +61,5 @@ class PasswordResetVerifySerializer(serializers.Serializer):
             raise serializers.ValidationError("Token has expired.")
         else:
             raise serializers.ValidationError("Token is invalid.")
-
-
-
-       
-
-
-
-
-
-
         
-    
-
+        

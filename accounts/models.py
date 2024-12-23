@@ -23,7 +23,6 @@ class UserManager(BaseUserManager):
             raise ValueError("Superuser must have is_staff=True.")
         if extra_fields.get('is_superuser') is not True:
             raise ValueError("Superuser must have is_superuser=True.")
-
         return self.create_user(email, password, **extra_fields)
 
 
@@ -34,7 +33,6 @@ class User(AbstractBaseUser):
 
     USERNAME_FIELD = 'email'
   
-
     objects = UserManager()
 
     def __str__(self):
@@ -48,7 +46,12 @@ class User(AbstractBaseUser):
 
 
 def generate_token():
-    return random.randint(100000, 999999)
+    while True:
+        token = random.randint(100000, 999999)
+        if not PasswordResetToken.objects.filter(token=token).exists():
+            # Changing str 
+            return token
+    
 
 
 class PasswordResetToken(models.Model):
@@ -64,15 +67,13 @@ class PasswordResetToken(models.Model):
     def is_valid(self):
         return timezone.now() < self.expires_at
     
-    # New
     def verify_token(self, token):
         if self.token != token:
             return "Invalid"
         elif timezone.now() > self.expires_at:
             return "Expired"
-        else:
-            return "Valid"
-
+        return "Valid"
+    
     def save(self, *args, **kwargs):
         if not self.expires_at:
             self.expires_at = timezone.now() + timezone.timedelta(days=1)
