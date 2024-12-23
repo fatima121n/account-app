@@ -48,6 +48,11 @@ class PasswordResetVerifySerializer(serializers.Serializer):
         email = data['email']
         token = data['token']
 
+        if not email:
+            raise serializers.ValidationError("Email is required.")
+        if not token:
+            raise serializers.ValidationError("Token is required.")
+
         try:
            user = User.objects.get(email=email)
            reset_token = PasswordResetToken.objects.get(user=user)
@@ -55,11 +60,15 @@ class PasswordResetVerifySerializer(serializers.Serializer):
            raise serializers.ValidationError("Invalid email or token.")
        
         token_status = reset_token.verify_token(token)
+        # Changed from here.
+        error_message = {
+            "Expired": "Token has expired.",
+            "Invalid": "Token is invalid."
+        }
+
         if token_status == "Valid":
             return data
-        elif token_status == "Expired":
-            raise serializers.ValidationError("Token has expired.")
         else:
-            raise serializers.ValidationError("Token is invalid.")
+            raise serializers.ValidationError(error_message.get(token_status), "Invalid token status.")
         
         

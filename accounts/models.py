@@ -50,7 +50,7 @@ def generate_token():
         token = random.randint(100000, 999999)
         if not PasswordResetToken.objects.filter(token=token).exists():
             # Changing str 
-            return token
+            return str(token)
     
 
 
