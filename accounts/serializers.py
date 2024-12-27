@@ -60,7 +60,6 @@ class PasswordResetVerifySerializer(serializers.Serializer):
            raise serializers.ValidationError("Invalid email or token.")
        
         token_status = reset_token.verify_token(token)
-        # Changed from here.
         error_message = {
             "Expired": "Token has expired.",
             "Invalid": "Token is invalid."
@@ -71,4 +70,53 @@ class PasswordResetVerifySerializer(serializers.Serializer):
         else:
             raise serializers.ValidationError(error_message.get(token_status), "Invalid token status.")
         
+
+
+# New class for confirming password reset and changing the password
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    token = serializers.IntegerField()
+    new_password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        email = data['email']
+        token = data['token']
+        new_password = data['new_password']
+
+        if not email:
+            raise serializers.ValidationError("Email is required.")
+        if not token:
+            raise serializers.ValidationError("Token is required.")
+        if not new_password:
+            raise serializers.ValidationError("New Password is required.")
         
+        try:
+            user = User.objects.get(email=email)
+            reset_token = PasswordResetToken.objects.get(user=user)
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError("Invalid email or token.")
+
+        token_status = reset_token.verify_token(token)
+        error_message = {
+            "Expired": "Token has expired.",
+            "Invalid": "Token is invalid.",
+        }
+
+        if token_status == "Valid":
+            return data
+        else:
+            raise serializers.ValidationError(error_message.get(token_status), "Invalid token status.")
+
+    def save(self):
+        email = self.validated_data['email']
+        new_password = self.validated_data['new_password']
+
+        try:
+            user = User.objects.get(email=email)
+            user.set_password(new_password)
+            user.save()
+            # delete the token after successful password reset
+            PasswordResetToken.objects.filter(user=user).delete()
+            return user
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist.")

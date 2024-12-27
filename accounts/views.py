@@ -3,7 +3,10 @@ from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import CreateAPIView
-from .serializers import PasswordResetRequestSerializer, UserRegistrationSerializer, PasswordResetVerifySerializer
+from .serializers import PasswordResetRequestSerializer,\
+      UserRegistrationSerializer,PasswordResetVerifySerializer,\
+      PasswordResetConfirmSerializer
+
 
 
 class RegisterUserView(CreateAPIView):
@@ -51,3 +54,14 @@ class PasswordResetVerifyView(CreateAPIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+# New view for confirming password reset and changing the password
+class PasswordResetConfirmView(CreateAPIView):
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

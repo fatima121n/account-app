@@ -5,6 +5,8 @@ from django.utils import timezone
 import random
 
 
+
+
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -32,7 +34,6 @@ class User(AbstractBaseUser):
     is_superuser = models.BooleanField(default=False)  
 
     USERNAME_FIELD = 'email'
-  
     objects = UserManager()
 
     def __str__(self):
