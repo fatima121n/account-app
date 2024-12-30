@@ -1,3 +1,4 @@
+from unittest.util import _MAX_LENGTH
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from . models import PasswordResetToken, User, generate_token
@@ -42,7 +43,8 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
 class PasswordResetVerifySerializer(serializers.Serializer):
     email = serializers.EmailField()
-    token = serializers.IntegerField()
+    token = serializers.CharField(max_length=6) 
+
 
     def validate(self, data):
         email = data['email']
@@ -75,7 +77,7 @@ class PasswordResetVerifySerializer(serializers.Serializer):
 # New class for confirming password reset and changing the password
 class PasswordResetConfirmSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    token = serializers.IntegerField()
+    token = serializers.CharField(max_length=6) 
     new_password = serializers.CharField(write_only=True)
 
     def validate(self, data):
@@ -115,7 +117,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             user = User.objects.get(email=email)
             user.set_password(new_password)
             user.save()
-            # delete the token after successful password reset
+           
             PasswordResetToken.objects.filter(user=user).delete()
             return user
         except User.DoesNotExist:

@@ -3,6 +3,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 import random
+import string 
 
 
 
@@ -48,9 +49,9 @@ class User(AbstractBaseUser):
 
 def generate_token():
     while True:
-        token = random.randint(100000, 999999)
+        token = ''.join(random.choices(string.digits, k=6)) 
         if not PasswordResetToken.objects.filter(token=token).exists():
-            return str(token)
+            return token
     
 
 
@@ -60,7 +61,8 @@ class PasswordResetToken(models.Model):
         on_delete=models.CASCADE, 
         related_name="reset_token"
     )
-    token = models.IntegerField(unique=True, default=generate_token)
+ 
+    token = models.CharField(max_length=6, unique=True, default=generate_token)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
 
