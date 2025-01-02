@@ -1,4 +1,3 @@
-from unittest.util import _MAX_LENGTH
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from . models import PasswordResetToken, User, generate_token

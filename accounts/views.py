@@ -55,7 +55,6 @@ class PasswordResetVerifyView(CreateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# New view for confirming password reset and changing the password
 class PasswordResetConfirmView(CreateAPIView):
     serializer_class = PasswordResetConfirmSerializer
 
