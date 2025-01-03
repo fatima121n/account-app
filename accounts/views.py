@@ -5,7 +5,8 @@ from rest_framework import status
 from rest_framework.generics import CreateAPIView
 from .serializers import PasswordResetRequestSerializer,\
       UserRegistrationSerializer,PasswordResetVerifySerializer,\
-      PasswordResetConfirmSerializer
+      PasswordResetConfirmSerializer, LoginSerializer
+from accounts import serializers
 
 
 
@@ -64,3 +65,14 @@ class PasswordResetConfirmView(CreateAPIView):
             serializer.save()
             return Response({'message': 'Password reset successfully.'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class LoginView(CreateAPIView):
+    serializer_class = LoginSerializer
+
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        return Response({"message": "Login successfull"}, status=status.HTTP_200_OK)
+        

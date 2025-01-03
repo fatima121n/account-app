@@ -1,6 +1,8 @@
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth import authenticate
 from rest_framework import serializers
 from . models import PasswordResetToken, User, generate_token
+from rest_framework.exceptions import AuthenticationFailed
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -121,3 +123,23 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             return user
         except User.DoesNotExist:
             raise serializers.ValidationError("User with this email does not exist.")
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        email = data['email']
+        password = data['password']
+
+        if email and password:
+            user = authenticate(request=self.context.get('request'), email=email, password=password)
+            if not user:
+                raise AuthenticationFailed("Invalid credentials.")
+        else:
+            raise serializers.ValidationError("Email and password are required.")
+        
+        data['user'] = user
+        return data
+
