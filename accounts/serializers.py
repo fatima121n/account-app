@@ -1,11 +1,9 @@
-from xml.dom import ValidationErr
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import authenticate
 from django.forms import ValidationError
-import pyotp
 from rest_framework import serializers
 from . models import PasswordResetToken, User, generate_token
-
+import pyotp
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -53,11 +51,6 @@ class PasswordResetVerifySerializer(serializers.Serializer):
         email = data['email']
         token = data['token']
 
-        # if not email:
-        #     raise serializers.ValidationError("Email is required.")
-        # if not token:
-        #     raise serializers.ValidationError("Token is required.")
-
         try:
            user = User.objects.get(email=email)
            reset_token = PasswordResetToken.objects.get(user=user, token=token)
@@ -65,11 +58,7 @@ class PasswordResetVerifySerializer(serializers.Serializer):
            raise serializers.ValidationError("Invalid email or token.")
        
         token_status = reset_token.verify_token(token)
-        # error_message = {
-        #     "Expired": "Token has expired.",
-        #     "Invalid": "Token is invalid."
-        # }
-
+        
         if token_status != "Valid":
             raise serializers.ValidationError({
                 "token": token_status
@@ -102,18 +91,14 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             raise serializers.ValidationError("Invalid email or token.")
 
         token_status = reset_token.verify_token(token)
-        # error_message = {
-        #     "Expired": "Token has expired.",
-        #     "Invalid": "Token is invalid.",
-        # }
-
+       
         if token_status != "Valid":
             raise ValidationError({
                 "token": token_status
             })
         return data
     
-    
+
     def save(self):
         email = self.validated_data['email']
         new_password = self.validated_data['new_password']
@@ -129,8 +114,6 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             raise serializers.ValidationError("User with this email does not exist.")
 
 
-
-# Modified my serializer to handle 2FA
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
@@ -163,8 +146,6 @@ class LoginSerializer(serializers.Serializer):
         }
 
 
-
-# Serializers for 2FA
 class VerifyTOTPSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     otp_code = serializers.CharField(required=True)

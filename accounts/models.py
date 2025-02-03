@@ -6,7 +6,6 @@ import secrets
 import string
 import pyotp 
 
-# New
 def generate_totp_key():
     return pyotp.random_base32()
 

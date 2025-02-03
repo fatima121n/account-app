@@ -1,24 +1,39 @@
 import base64
-from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
+from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
 from django.contrib.auth import login
 from django.http import HttpResponse
 from django.conf import settings
-from django.views import View
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import CreateAPIView
 from rest_framework.views import APIView
 from . models import PasswordResetToken, User
 from .serializers import PasswordResetRequestSerializer,\
-      UserRegistrationSerializer,PasswordResetVerifySerializer,\
-      PasswordResetConfirmSerializer, LoginSerializer, VerifyTOTPSerializer
+    UserRegistrationSerializer,PasswordResetVerifySerializer,\
+    PasswordResetConfirmSerializer, LoginSerializer, VerifyTOTPSerializer
 import pyotp
 import qrcode
 import io
 import qrcode.constants
 
+class HomePageView(APIView):
+    def get(self, request):
+        routes = [
+            {'name': 'Home', 'url': request.build_absolute_uri(reverse('home'))},
+            {'name': 'Register', 'url': request.build_absolute_uri(reverse('register'))},
+            {'name': 'Login', 'url': request.build_absolute_uri(reverse('login'))},
+            {'name': 'Password Reset Request', 'url': request.build_absolute_uri(reverse('password-reset-request'))},
+            {'name': 'Password Reset Verify', 'url': request.build_absolute_uri(reverse('password-reset-verify'))},
+            {'name': 'Password Reset Confirm', 'url': request.build_absolute_uri(reverse('password-reset-confirm'))},
+            {'name': 'Generate QR Code', 'url': request.build_absolute_uri(reverse('generate-qrcode'))},
+            {'name': 'Verify TOTP', 'url': request.build_absolute_uri(reverse('totp-verify'))},
 
+
+        ]
+
+        return Response({'routes': routes})
 
 class RegisterUserView(CreateAPIView):
     serializer_class = UserRegistrationSerializer
@@ -55,16 +70,6 @@ class PasswordResetRequestView(CreateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
-
-# class PasswordResetVerifyView(CreateAPIView):
-#     serializer_class = PasswordResetVerifySerializer
-#     def post(self, request):
-#         serializer = PasswordResetVerifySerializer(data=request.data)
-
-#         if serializer.is_valid():
-#             return Response({'message': 'Token is valid'}, status=status.HTTP_200_OK)
-        
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PasswordResetVerifyView(APIView):
     def post(self, request):
@@ -110,13 +115,11 @@ class LoginView(CreateAPIView):
                 return Response({"error": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
             
         
-        # Log the user in immediately if OTP is not required
         login(request, user)
         return Response({"message": "Login successful."}, status=status.HTTP_200_OK)
 
 
 
-# For two step verification
 class GenerateQRCodeView(APIView):    
     def get(self, request):
         email = request.GET.get('email')
@@ -129,11 +132,7 @@ class GenerateQRCodeView(APIView):
             user.totp_key = pyotp.random_base32()
             user.save()
 
-        # print("User TOTP key:", user.totp_key)
-
-        otp_auth_url = f"otpauth://totp/Accounts:{user.email}?secret={user.totp_key}&issuer=Accounts"
-        # print("OTP auth URL:", otp_auth_url)
-   
+        otp_auth_url = f"otpauth://totp/Accounts:{user.email}?secret={user.totp_key}&issuer=Accounts"   
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
