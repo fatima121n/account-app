@@ -2,9 +2,13 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-import random
+import secrets
 import string
 import pyotp 
+
+# New
+def generate_totp_key():
+    return pyotp.random_base32()
 
 
 class UserManager(BaseUserManager):
@@ -33,8 +37,7 @@ class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
     is_staff = models.BooleanField(default=False)  
     is_superuser = models.BooleanField(default=False) 
-    # For two step verification
-    totp_key = models.CharField(max_length=16, default=pyotp.random_base32, editable=False, blank=True)
+    totp_key = models.CharField(max_length=16, default=generate_totp_key, editable=False) # Edited
 
     USERNAME_FIELD = 'email'
     objects = UserManager()
@@ -49,39 +52,30 @@ class User(AbstractBaseUser):
         return self.is_superuser
     
 
-
-
 def generate_token():
-    while True:
-        token = ''.join(random.choices(string.digits, k=6)) 
-        if not PasswordResetToken.objects.filter(token=token).exists():
-            return token
-    
+    return ''.join(secrets.choice(string.digits) for _ in range(6)) 
+   
 
 
 class PasswordResetToken(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
-        related_name="reset_token"
+        related_name="reset_tokens" # Changed to Plural
     )
  
     token = models.CharField(max_length=6, unique=True, default=generate_token)
     created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
+    expires_at = models.DateTimeField(
+        default=timezone.now() + timezone.timedelta(days=1)
+    )
 
     def is_valid(self):
         return timezone.now() < self.expires_at
     
     def verify_token(self, token):
-        if self.token != token:
+        if not secrets.compare_digest(self.token, token):
             return "Invalid"
         return "Valid" if self.is_valid() else "Expired"
+   
         
-    
-    def save(self, *args, **kwargs):
-        if not self.expires_at:
-            self.expires_at = timezone.now() + timezone.timedelta(days=1)
-        super().save(*args, **kwargs)
-
-

@@ -1,5 +1,7 @@
+from xml.dom import ValidationErr
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import authenticate
+from django.forms import ValidationError
 import pyotp
 from rest_framework import serializers
 from . models import PasswordResetToken, User, generate_token
@@ -51,28 +53,29 @@ class PasswordResetVerifySerializer(serializers.Serializer):
         email = data['email']
         token = data['token']
 
-        if not email:
-            raise serializers.ValidationError("Email is required.")
-        if not token:
-            raise serializers.ValidationError("Token is required.")
+        # if not email:
+        #     raise serializers.ValidationError("Email is required.")
+        # if not token:
+        #     raise serializers.ValidationError("Token is required.")
 
         try:
            user = User.objects.get(email=email)
-           reset_token = PasswordResetToken.objects.get(user=user)
+           reset_token = PasswordResetToken.objects.get(user=user, token=token)
         except ObjectDoesNotExist:
            raise serializers.ValidationError("Invalid email or token.")
        
         token_status = reset_token.verify_token(token)
-        error_message = {
-            "Expired": "Token has expired.",
-            "Invalid": "Token is invalid."
-        }
+        # error_message = {
+        #     "Expired": "Token has expired.",
+        #     "Invalid": "Token is invalid."
+        # }
 
-        if token_status == "Valid":
-            return data
-        else:
-            raise serializers.ValidationError(error_message.get(token_status), "Invalid token status.")
+        if token_status != "Valid":
+            raise serializers.ValidationError({
+                "token": token_status
+            })
         
+        return data
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
@@ -99,16 +102,18 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             raise serializers.ValidationError("Invalid email or token.")
 
         token_status = reset_token.verify_token(token)
-        error_message = {
-            "Expired": "Token has expired.",
-            "Invalid": "Token is invalid.",
-        }
+        # error_message = {
+        #     "Expired": "Token has expired.",
+        #     "Invalid": "Token is invalid.",
+        # }
 
-        if token_status == "Valid":
-            return data
-        else:
-            raise serializers.ValidationError(error_message.get(token_status), "Invalid token status.")
-
+        if token_status != "Valid":
+            raise ValidationError({
+                "token": token_status
+            })
+        return data
+    
+    
     def save(self):
         email = self.validated_data['email']
         new_password = self.validated_data['new_password']

@@ -1,21 +1,22 @@
 import base64
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.core.mail import send_mail
 from django.contrib.auth import login
 from django.http import HttpResponse
 from django.conf import settings
+from django.views import View
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import CreateAPIView
 from rest_framework.views import APIView
+from . models import PasswordResetToken, User
+from .serializers import PasswordResetRequestSerializer,\
+      UserRegistrationSerializer,PasswordResetVerifySerializer,\
+      PasswordResetConfirmSerializer, LoginSerializer, VerifyTOTPSerializer
 import pyotp
 import qrcode
 import io
 import qrcode.constants
-from . models import User
-from .serializers import PasswordResetRequestSerializer,\
-      UserRegistrationSerializer,PasswordResetVerifySerializer,\
-      PasswordResetConfirmSerializer, LoginSerializer, VerifyTOTPSerializer
 
 
 
@@ -55,16 +56,26 @@ class PasswordResetRequestView(CreateAPIView):
     
     
 
-class PasswordResetVerifyView(CreateAPIView):
-    serializer_class = PasswordResetVerifySerializer
+# class PasswordResetVerifyView(CreateAPIView):
+#     serializer_class = PasswordResetVerifySerializer
+#     def post(self, request):
+#         serializer = PasswordResetVerifySerializer(data=request.data)
+
+#         if serializer.is_valid():
+#             return Response({'message': 'Token is valid'}, status=status.HTTP_200_OK)
+        
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PasswordResetVerifyView(APIView):
     def post(self, request):
         serializer = PasswordResetVerifySerializer(data=request.data)
-
         if serializer.is_valid():
-            return Response({'message': 'Token is valid'}, status=status.HTTP_200_OK)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+            email = serializer.validated_data['email']
+            user = User.objects.get(email=email)
+            if not PasswordResetToken.objects.filter(user=user).exists():
+                return Response({"token": "Already used."}, status=400)
+            return Response({"message": "Token is valid."}, status=200)
+        return Response(serializer.errors, status=400)
 
 
 class PasswordResetConfirmView(CreateAPIView):
