@@ -20,6 +20,17 @@ import qrcode.constants
 
 class HomePageView(APIView):
     def get(self, request):
+        try:
+            # Check if the database is reachable
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+            health_status = "healthy"
+            health_message = "All Systems Operational."
+        except Exception as e:
+            health_status = "Unhealthy"
+            health_message = f"Service Disruption: {str(e)}"
+
         routes = [
             {'name': 'Home', 'url': request.build_absolute_uri(reverse('home'))},
             {'name': 'Register', 'url': request.build_absolute_uri(reverse('register'))},
@@ -29,11 +40,13 @@ class HomePageView(APIView):
             {'name': 'Password Reset Confirm', 'url': request.build_absolute_uri(reverse('password-reset-confirm'))},
             {'name': 'Generate QR Code', 'url': request.build_absolute_uri(reverse('generate-qrcode'))},
             {'name': 'Verify TOTP', 'url': request.build_absolute_uri(reverse('totp-verify'))},
-
-
         ]
 
-        return Response({'routes': routes})
+        return Response({
+            'status': health_status,
+            'message': health_message,
+            'routes': routes
+        })
 
 class RegisterUserView(CreateAPIView):
     serializer_class = UserRegistrationSerializer
@@ -148,10 +161,8 @@ class GenerateQRCodeView(APIView):
         img.save(buffer, format="PNG")
         buffer.seek(0)
 
-        # Encode QR code as Base64
         qr_base64 = base64.b64encode(buffer.getvalue()).decode()
            
-        # Return Base64 data as json
         return Response({"qr_code": qr_base64}, status=status.HTTP_200_OK)
 
     
