@@ -3,9 +3,8 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 import random
-import string 
-
-
+import string
+import pyotp 
 
 
 class UserManager(BaseUserManager):
@@ -29,10 +28,13 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
+
 class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
     is_staff = models.BooleanField(default=False)  
-    is_superuser = models.BooleanField(default=False)  
+    is_superuser = models.BooleanField(default=False) 
+    # For two step verification
+    totp_key = models.CharField(max_length=16, default=pyotp.random_base32, editable=False, blank=True)
 
     USERNAME_FIELD = 'email'
     objects = UserManager()
@@ -45,6 +47,8 @@ class User(AbstractBaseUser):
     
     def has_module_perms(self, app_label):
         return self.is_superuser
+    
+
 
 
 def generate_token():
@@ -79,3 +83,5 @@ class PasswordResetToken(models.Model):
         if not self.expires_at:
             self.expires_at = timezone.now() + timezone.timedelta(days=1)
         super().save(*args, **kwargs)
+
+

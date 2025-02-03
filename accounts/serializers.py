@@ -1,8 +1,10 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import authenticate
+import pyotp
 from rest_framework import serializers
 from . models import PasswordResetToken, User, generate_token
-from rest_framework.exceptions import AuthenticationFailed
+
+
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -30,9 +32,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         email = self.validated_data['email']
         try:
             user = User.objects.get(email=email)
-            # Delete old tokens
             PasswordResetToken.objects.filter(user=user).delete()
-            # Generate and save a new token
             token = generate_token()
             reset_token = PasswordResetToken.objects.create(user=user, token=token)
 
@@ -75,7 +75,6 @@ class PasswordResetVerifySerializer(serializers.Serializer):
         
 
 
-# New class for confirming password reset and changing the password
 class PasswordResetConfirmSerializer(serializers.Serializer):
     email = serializers.EmailField()
     token = serializers.CharField(max_length=6) 
@@ -125,21 +124,42 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             raise serializers.ValidationError("User with this email does not exist.")
 
 
+
+# Modified my serializer to handle 2FA
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
-
+    otp_code = serializers.CharField(write_only=True)
+        
     def validate(self, data):
         email = data['email']
         password = data['password']
+        otp_code = data['otp_code']
 
-        if email and password:
-            user = authenticate(request=self.context.get('request'), email=email, password=password)
-            if not user:
-                raise AuthenticationFailed("Invalid credentials.")
-        else:
-            raise serializers.ValidationError("Email and password are required.")
+        user = authenticate(email=email, password=password)
+
+        if not user:
+            raise serializers.ValidationError("Invalid email or password.")
+
+        # Check if OTP is required
+        requires_otp = user.totp_key is not None
+        if requires_otp:
+            if not otp_code:
+                raise serializers.ValidationError({"otp_code": "This field is required."})
         
-        data['user'] = user
-        return data
+            totp = pyotp.TOTP(user.totp_key)
+            if not totp.verify(otp_code):
+                raise serializers.ValidationError("Invalid OTP code.")
+            
 
+        return {
+            'user': user,
+            'requires_otp': requires_otp
+        }
+
+
+
+# Serializers for 2FA
+class VerifyTOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    otp_code = serializers.CharField(required=True)
