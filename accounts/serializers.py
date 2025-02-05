@@ -6,6 +6,7 @@ from . models import PasswordResetToken, User, generate_token
 import pyotp
 
 
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -117,34 +118,20 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
-    otp_code = serializers.CharField(write_only=True)
-        
+
     def validate(self, data):
-        email = data['email']
-        password = data['password']
-        otp_code = data['otp_code']
+        email = data.get("email")
+        password = data.get("password")
 
+        # Authenticate the user
         user = authenticate(email=email, password=password)
-
         if not user:
             raise serializers.ValidationError("Invalid email or password.")
 
-        # Check if OTP is required
-        requires_otp = user.totp_key is not None
-        if requires_otp:
-            if not otp_code:
-                raise serializers.ValidationError({"otp_code": "This field is required."})
-        
-            totp = pyotp.TOTP(user.totp_key)
-            if not totp.verify(otp_code):
-                raise serializers.ValidationError("Invalid OTP code.")
-            
+        data['user'] = user
+        return data
 
-        return {
-            'user': user,
-            'requires_otp': requires_otp
-        }
-
+    
 
 class VerifyTOTPSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)

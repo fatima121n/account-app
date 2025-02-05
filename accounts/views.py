@@ -1,4 +1,3 @@
-import base64
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
@@ -14,9 +13,11 @@ from .serializers import PasswordResetRequestSerializer,\
     UserRegistrationSerializer,PasswordResetVerifySerializer,\
     PasswordResetConfirmSerializer, LoginSerializer, VerifyTOTPSerializer
 import pyotp
+import base64
 import qrcode
 import io
 import qrcode.constants
+
 
 class HomePageView(APIView):
     def get(self, request):
@@ -107,30 +108,17 @@ class PasswordResetConfirmView(CreateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-# Modifying Login View for 2FA
 class LoginView(CreateAPIView):
     serializer_class = LoginSerializer
-    
+
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data['user']
-        requires_otp = serializer.validated_data['requires_otp']
-
-        if requires_otp:
-            otp_code = request.data.get('otp_code')
-            if not otp_code:
-                return Response({"message": "OTP code is required."}, status=status.HTTP_400_BAD_REQUEST)
-
-            totp = pyotp.TOTP(user.totp_key)
-            if not totp.verify(otp_code):
-                return Response({"error": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        
         login(request, user)
-        return Response({"message": "Login successful."}, status=status.HTTP_200_OK)
 
+        return Response({'message': 'Login successful.'}, status=status.HTTP_200_OK)
 
 
 class GenerateQRCodeView(APIView):    
