@@ -3,9 +3,6 @@ from django.contrib.auth import authenticate
 from django.forms import ValidationError
 from rest_framework import serializers
 from . models import PasswordResetToken, User, generate_token
-import pyotp
-
-
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,7 +13,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
         return user
-
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):

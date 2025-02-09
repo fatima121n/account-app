@@ -36,7 +36,7 @@ class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
     is_staff = models.BooleanField(default=False)  
     is_superuser = models.BooleanField(default=False) 
-    totp_key = models.CharField(max_length=16, default=generate_totp_key, editable=False) # Edited
+    totp_key = models.CharField(max_length=16, default=generate_totp_key, editable=False)
 
     USERNAME_FIELD = 'email'
     objects = UserManager()
