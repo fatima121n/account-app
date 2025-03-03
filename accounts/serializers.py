@@ -1,6 +1,9 @@
+import email
+from multiprocessing import Value
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import authenticate
 from django.forms import ValidationError
+import pyotp
 from rest_framework import serializers
 from . models import PasswordResetToken, User, generate_token
 
@@ -114,21 +117,72 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+    otp_code = serializers.CharField(required=False, allow_blank=True) #New Field
 
     def validate(self, data):
         email = data.get("email")
         password = data.get("password")
+        otp_code = data.get("otp_code", "")
 
         # Authenticate the user
         user = authenticate(email=email, password=password)
         if not user:
             raise serializers.ValidationError("Invalid email or password.")
+        
+        if user.is_2fa_enabled:
+            if not otp_code:
+                raise serializers.ValidationError("OTP code is required for 2FA.")
+            
+            totp = pyotp.TOTP(user.totp_key)
+            if not totp.verify(otp_code):
+                raise serializers.ValidationError("Invalid OTP code.")
 
         data['user'] = user
         return data
 
     
-
 class VerifyTOTPSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     otp_code = serializers.CharField(required=True)
+
+
+class TOTPEnableDisableSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    enable = serializers.BooleanField(required=True)
+
+    def validate_email(self, value):
+        try:
+            user = User.objects.get(email=value) # One mistake here instead of email i wrote user
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist.")
+        return value
+    
+    def save(self):
+        email = self.validated_data['email']
+        enable = self.validated_data['enable']
+        
+        try:
+            user = User.objects.get(email=email)
+            user.is_2fa_enabled = enable
+            user.save()
+            return user
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist.")
+
+        
+class TOTPSetUpSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+    def validate_email(self, value):
+        try:
+            user = User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist.")
+        return value
+    
+    def save(self):
+        email = self.validated_data['email']
+        user = User.objects.get(email=email)
+        totp = pyotp.TOTP(user.totp_key)
+        provisioning_uri = totp.provisioning_uri(name=user.email, issuer_name="Accounts")
+        return {"provisioning_uri": provisioning_uri} 

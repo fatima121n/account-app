@@ -8,15 +8,17 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.generics import CreateAPIView
 from rest_framework.views import APIView
-from . models import PasswordResetToken, User
-from .serializers import PasswordResetRequestSerializer,\
-    UserRegistrationSerializer,PasswordResetVerifySerializer,\
-    PasswordResetConfirmSerializer, LoginSerializer, VerifyTOTPSerializer
 import pyotp
 import base64
 import qrcode
 import io
 import qrcode.constants
+from . models import PasswordResetToken, User
+from .serializers import PasswordResetRequestSerializer,\
+    UserRegistrationSerializer,PasswordResetVerifySerializer,\
+    PasswordResetConfirmSerializer, LoginSerializer, VerifyTOTPSerializer, TOTPEnableDisableSerializer,\
+    TOTPSetUpSerializer
+
 
 
 class HomePageView(APIView):
@@ -112,7 +114,7 @@ class LoginView(CreateAPIView):
     serializer_class = LoginSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data['user']
@@ -176,4 +178,21 @@ class VerifyTOTPView(CreateAPIView):
         except User.DoesNotExist:
             return Response({"message": "No user found."}, status=status.HTTP_404_NOT_FOUND)
         
+class TOTPEnableDisableView(APIView):
+    def post(self, request):
+        serializer = TOTPEnableDisableSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({"status": "2FA Enabled" if user.is_2fa_enabled else "2FA Disabled"}, 
+                            status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class TOTPSetUpView(APIView):
+    def post(self, request):
+        serializer = TOTPSetUpSerializer(data=request.data)
+        if serializer.is_valid():
+            data = serializer.save()
+            return Response(data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     

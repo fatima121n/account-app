@@ -2,7 +2,7 @@ from django.urls import path
 from . views import GenerateQRCodeView, HomePageView, \
     PasswordResetRequestView, RegisterUserView, \
     PasswordResetVerifyView, PasswordResetConfirmView, \
-    LoginView, GenerateQRCodeView, VerifyTOTPView, HomePageView
+    LoginView, GenerateQRCodeView, VerifyTOTPView, HomePageView, TOTPEnableDisableView, TOTPSetUpView
 
 
 
@@ -15,6 +15,8 @@ urlpatterns = [
     path('auth/password/reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     path('auth/2fa/generate-qr/', GenerateQRCodeView.as_view(), name='generate-qrcode'),
     path('auth/2fa/verify/', VerifyTOTPView.as_view(), name='totp-verify'),
+    path('auth/enable-disable-2fa/', TOTPEnableDisableView.as_view(), name='enable-disable-2fa'),
+    path('auth/setup-totp/', TOTPSetUpView.as_view(), name='setup-totp')
 ]
 
 

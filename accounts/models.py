@@ -37,6 +37,7 @@ class User(AbstractBaseUser):
     is_staff = models.BooleanField(default=False)  
     is_superuser = models.BooleanField(default=False) 
     totp_key = models.CharField(max_length=16, default=generate_totp_key, editable=False)
+    is_2fa_enabled = models.BooleanField(default=False) # New field
 
     USERNAME_FIELD = 'email'
     objects = UserManager()
