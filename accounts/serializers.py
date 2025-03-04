@@ -1,10 +1,8 @@
-import email
-from multiprocessing import Value
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import authenticate
 from django.forms import ValidationError
-import pyotp
 from rest_framework import serializers
+import pyotp
 from . models import PasswordResetToken, User, generate_token
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -139,6 +137,7 @@ class LoginSerializer(serializers.Serializer):
 
         data['user'] = user
         return data
+    
 
     
 class VerifyTOTPSerializer(serializers.Serializer):
@@ -186,3 +185,7 @@ class TOTPSetUpSerializer(serializers.Serializer):
         totp = pyotp.TOTP(user.totp_key)
         provisioning_uri = totp.provisioning_uri(name=user.email, issuer_name="Accounts")
         return {"provisioning_uri": provisioning_uri} 
+    
+
+class DummySerializer(serializers.Serializer):
+    pass

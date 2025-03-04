@@ -6,7 +6,7 @@ import secrets
 import string
 import pyotp 
 
-def generate_totp_key():
+def generate_totp_key() -> str:
     return pyotp.random_base32()
 
 
@@ -37,7 +37,7 @@ class User(AbstractBaseUser):
     is_staff = models.BooleanField(default=False)  
     is_superuser = models.BooleanField(default=False) 
     totp_key = models.CharField(max_length=16, default=generate_totp_key, editable=False)
-    is_2fa_enabled = models.BooleanField(default=False) # New field
+    is_2fa_enabled = models.BooleanField(default=False) 
 
     USERNAME_FIELD = 'email'
     objects = UserManager()
@@ -52,8 +52,8 @@ class User(AbstractBaseUser):
         return self.is_superuser
     
 
-def generate_token():
-    return ''.join(secrets.choice(string.digits) for _ in range(6)) 
+def generate_token(length: int=6) -> str:
+    return ''.join(secrets.choice(string.digits) for _ in range(length)) 
    
 
 
@@ -61,7 +61,7 @@ class PasswordResetToken(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
-        related_name="reset_tokens" # Changed to Plural
+        related_name="reset_tokens" 
     )
  
     token = models.CharField(max_length=6, unique=True, default=generate_token)
@@ -70,10 +70,10 @@ class PasswordResetToken(models.Model):
         default=timezone.now() + timezone.timedelta(days=1)
     )
 
-    def is_valid(self):
+    def is_valid(self) -> bool:
         return timezone.now() < self.expires_at
     
-    def verify_token(self, token):
+    def verify_token(self, token: str) -> str:
         if not secrets.compare_digest(self.token, token):
             return "Invalid"
         return "Valid" if self.is_valid() else "Expired"

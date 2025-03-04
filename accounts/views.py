@@ -12,13 +12,13 @@ import pyotp
 import base64
 import qrcode
 import io
+import logging
 import qrcode.constants
 from . models import PasswordResetToken, User
 from .serializers import PasswordResetRequestSerializer,\
     UserRegistrationSerializer,PasswordResetVerifySerializer,\
     PasswordResetConfirmSerializer, LoginSerializer, VerifyTOTPSerializer, TOTPEnableDisableSerializer,\
-    TOTPSetUpSerializer
-
+    TOTPSetUpSerializer, DummySerializer
 
 
 class HomePageView(APIView):
@@ -43,6 +43,8 @@ class HomePageView(APIView):
             {'name': 'Password Reset Confirm', 'url': request.build_absolute_uri(reverse('password-reset-confirm'))},
             {'name': 'Generate QR Code', 'url': request.build_absolute_uri(reverse('generate-qrcode'))},
             {'name': 'Verify TOTP', 'url': request.build_absolute_uri(reverse('totp-verify'))},
+            {'name': 'Enable/Disable 2FA', 'url': request.build_absolute_uri(reverse('enable-disable-2fa'))},
+            {'name': 'Set Up TOTP', 'url': request.build_absolute_uri(reverse('setup-totp'))},
         ]
 
         return Response({
@@ -51,14 +53,18 @@ class HomePageView(APIView):
             'routes': routes
         })
 
+logger = logging.getLogger(__name__)
+
 class RegisterUserView(CreateAPIView):
     serializer_class = UserRegistrationSerializer
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            user =serializer.save()
+            logger.info(f"User registered successfullt: {user.email}")
             return Response({"message": "User registered successfully."}, status=status.HTTP_201_CREATED)
+        logger.error(f"User registration failed: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -86,17 +92,19 @@ class PasswordResetRequestView(CreateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
+# Test this!
+class PasswordResetVerifyView(CreateAPIView):
+    serializer_class = PasswordResetVerifySerializer
 
-class PasswordResetVerifyView(APIView):
-    def post(self, request):
-        serializer = PasswordResetVerifySerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            user = User.objects.get(email=email)
-            if not PasswordResetToken.objects.filter(user=user).exists():
-                return Response({"token": "Already used."}, status=400)
-            return Response({"message": "Token is valid."}, status=200)
-        return Response(serializer.errors, status=400)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data['email']
+        user = User.objects.get(email=email)
+        if not PasswordResetToken.objects.filter(user=user).exists():
+            return Response({"token": "Already used."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "Token is valid."}, status=status.HTTP_200_OK)
 
 
 class PasswordResetConfirmView(CreateAPIView):
@@ -123,11 +131,14 @@ class LoginView(CreateAPIView):
         return Response({'message': 'Login successful.'}, status=status.HTTP_200_OK)
 
 
-class GenerateQRCodeView(APIView):    
-    def get(self, request):
-        email = request.GET.get('email')
+# Test this too
+class GenerateQRCodeView(CreateAPIView):
+    serializer_class = DummySerializer
+
+    def create(self, request, *args, **kwargs):
+        email = request.data.get('email')
         if not email:
-            return HttpResponse("User email is required.", status=400)
+            return HttpResponse("User email is required.", status=status.HTTP_400_BAD_REQUEST)
         
         user = get_object_or_404(User, email=email)
 
@@ -178,21 +189,27 @@ class VerifyTOTPView(CreateAPIView):
         except User.DoesNotExist:
             return Response({"message": "No user found."}, status=status.HTTP_404_NOT_FOUND)
         
-class TOTPEnableDisableView(APIView):
-    def post(self, request):
-        serializer = TOTPEnableDisableSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            return Response({"status": "2FA Enabled" if user.is_2fa_enabled else "2FA Disabled"}, 
+class TOTPEnableDisableView(CreateAPIView):
+    serializer_class = TOTPEnableDisableSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.save()
+        return Response({"status": "2FA Enabled" if user.is_2fa_enabled else "2FA Disabled"}, 
                             status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
     
 
-class TOTPSetUpView(APIView):
-    def post(self, request):
-        serializer = TOTPSetUpSerializer(data=request.data)
-        if serializer.is_valid():
-            data = serializer.save()
-            return Response(data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class TOTPSetUpView(CreateAPIView):
+    serializer_class = TOTPSetUpSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.save()
+        
+        return Response(data, status=status.HTTP_200_OK)
     
