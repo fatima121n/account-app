@@ -1,7 +1,7 @@
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.core.mail import send_mail
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.http import HttpResponse
 from django.conf import settings
 from rest_framework.response import Response
@@ -19,6 +19,10 @@ from .serializers import PasswordResetRequestSerializer,\
     UserRegistrationSerializer,PasswordResetVerifySerializer,\
     PasswordResetConfirmSerializer, LoginSerializer, VerifyTOTPSerializer, TOTPEnableDisableSerializer,\
     TOTPSetUpSerializer, DummySerializer
+from django.http import JsonResponse
+
+def hello(request):
+    return JsonResponse({"message": "Hello, Fatima!"})
 
 
 class HomePageView(APIView):
@@ -45,6 +49,7 @@ class HomePageView(APIView):
             {'name': 'Verify TOTP', 'url': request.build_absolute_uri(reverse('totp-verify'))},
             {'name': 'Enable/Disable 2FA', 'url': request.build_absolute_uri(reverse('enable-disable-2fa'))},
             {'name': 'Set Up TOTP', 'url': request.build_absolute_uri(reverse('setup-totp'))},
+            {'name': 'Logout', 'url': request.build_absolute_uri(reverse('logout'))},
         ]
 
         return Response({
@@ -129,6 +134,22 @@ class LoginView(CreateAPIView):
         login(request, user)
 
         return Response({'message': 'Login successful.'}, status=status.HTTP_200_OK)
+
+class LogoutView(APIView):
+    def post(self, request):
+        """
+        Logs out the currently authenticated user.
+        """
+        # If using token authentication, delete the token
+        if hasattr(request.user, 'auth_token'):
+            request.user.auth_token.delete()
+
+        # Log out the user
+        logout(request)
+
+        # Return a success response
+        return Response({"message": "Logout successful."}, status=status.HTTP_200_OK)
+    
 
 
 # Test this too
