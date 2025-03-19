@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "7d364a4ee6a917d42c2cacf67ad3bf4d72576827d570df9944d2282a9f14cfb9"
+            "sha256": "998591d6b2cc4b27abf697af6c4d8e8b97e07cf5c498c8f0f246434960ef355c"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -34,12 +34,12 @@
         },
         "django": {
             "hashes": [
-                "sha256:236e023f021f5ce7dee5779de7b286565fdea5f4ab86bae5338e3f7b69896cf0",
-                "sha256:de450c09e91879fa5a307f696e57c851955c910a438a35e6b4c895e86bedc82a"
+                "sha256:1323617cb624add820cb9611cdcc788312d250824f92ca6048fda8625514af2b",
+                "sha256:30de4ee43a98e5d3da36a9002f287ff400b43ca51791920bfb35f6917bfe041c"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.10'",
-            "version": "==5.1.4"
+            "version": "==5.1.7"
         },
         "django-allauth": {
             "hashes": [
@@ -48,6 +48,15 @@
             "index": "pypi",
             "markers": "python_version >= '3.8'",
             "version": "==65.3.0"
+        },
+        "django-cors-headers": {
+            "hashes": [
+                "sha256:6fdf31bf9c6d6448ba09ef57157db2268d515d94fc5c89a0a1028e1fc03ee52b",
+                "sha256:f1c125dcd58479fe7a67fe2499c16ee38b81b397463cf025f0e2c42937421070"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.9'",
+            "version": "==4.7.0"
         },
         "djangorestframework": {
             "hashes": [
@@ -75,6 +84,15 @@
             "markers": "python_version >= '3.9'",
             "version": "==2.10.1"
         },
+        "pyotp": {
+            "hashes": [
+                "sha256:346b6642e0dbdde3b4ff5a930b664ca82abfa116356ed48cc42c7d6590d36f63",
+                "sha256:81c2e5865b8ac55e825b0358e496e1d9387c811e85bb40e71a3b29b288963612"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.7'",
+            "version": "==2.9.0"
+        },
         "sqlparse": {
             "hashes": [
                 "sha256:09f67787f56a0b16ecdbde1bfc7f5d9c3371ca683cfeaa8e6ff60b4807ec9272",
@@ -85,11 +103,11 @@
         },
         "tzdata": {
             "hashes": [
-                "sha256:7d85cc416e9382e69095b7bdf4afd9e3880418a2413feec7069d533d6b4e31cc",
-                "sha256:a48093786cdcde33cad18c2555e8532f34422074448fbc874186f0abd79565cd"
+                "sha256:24894909e88cdb28bd1636c6887801df64cb485bd593f2fd83ef29075a81d694",
+                "sha256:7e127113816800496f027041c570f50bcd464a020098a3b6b199517772303639"
             ],
             "markers": "python_version >= '2'",
-            "version": "==2024.2"
+            "version": "==2025.1"
         }
     },
     "develop": {}
