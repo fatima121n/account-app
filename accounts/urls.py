@@ -3,7 +3,7 @@ from . views import HomePageView, \
     PasswordResetRequestView, RegisterUserView, \
     PasswordResetVerifyView, PasswordResetConfirmView, \
     LoginView, HomePageView, TOTPEnableDisableView, \
-    LogoutView, GenerateQRCodeView
+    LogoutView, GenerateQRCodeView, VerifyOTPCodeView
 
 
 
@@ -17,6 +17,9 @@ urlpatterns = [
     path('auth/enable-disable-2fa/', TOTPEnableDisableView.as_view(), name='enable-disable-2fa'),
     path('auth/qrcode/', GenerateQRCodeView.as_view(), name='qr-code'),
     path('auth/logout/', LogoutView.as_view(), name='logout'),
+    path('auth/qrcode/', GenerateQRCodeView.as_view(), name='qrcode'),
+    path('auth/verify-otp/', VerifyOTPCodeView.as_view(), name='verify-otp'),
+
 ]
 
 

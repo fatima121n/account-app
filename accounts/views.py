@@ -8,15 +8,16 @@ from rest_framework import status
 from rest_framework.generics import CreateAPIView
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-import pyotp
-import qrcode
-import io
 import logging
 import qrcode.constants
 from . models import PasswordResetToken, User
 from .serializers import PasswordResetRequestSerializer,\
     UserRegistrationSerializer,PasswordResetVerifySerializer,\
     PasswordResetConfirmSerializer, LoginSerializer, TOTPEnableDisableSerializer
+import pyotp
+import qrcode
+from io import BytesIO
+import base64
 
 
 logger = logging.getLogger(__name__)
@@ -143,24 +144,6 @@ class LogoutView(APIView):
         return Response({"message": "Logout successful."}, status=status.HTTP_200_OK)
     
 
-class GenerateQRCodeView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        user = request.user
-        if not user.is_2fa_enabled or not user.totp_secret:
-            return Response({"error": "2FA is not enabled for this account."}, status=400)
-        
-        totp = pyotp.TOTP(user.totp_secret)
-        provisioning_uri = totp.provisioning_uri(name=user.email, issuer_name="Accounts")
-
-        qr = qrcode.make(provisioning_uri)
-        buffer = io.BytesIO()
-        qr.save(buffer, format="PNG")
-        buffer.seek(0)
-
-        return HttpResponse(buffer.getvalue(), content_type="image/png")
-
     
 
 class TOTPEnableDisableView(CreateAPIView):
@@ -176,5 +159,51 @@ class TOTPEnableDisableView(CreateAPIView):
         
     
 
+class GenerateQRCodeView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        if not user.is_2fa_enabled:
+            return Response({"error": "2FA is not enabled for this user."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not user.totp_key:
+            user.totp_key = pyotp.random_base32()
+            user.save()
+
+        totp = pyotp.TOTP(user.totp_key)
+        uri = totp.provisioning_uri(name=email, issuer_name="Accounts")
+
+        qr = qrcode.make(uri)
+        buffer = BytesIO()
+        qr.save(buffer, format="PNG")
+        qr_base64 = base64.b64encode(buffer.getvalue()).decode()
+
+        return Response({
+            "provisioning_uri": uri,
+            "qr_code": f"data:image/png;base64,{qr_base64}"
+        }, status=status.HTTP_200_OK)
 
     
+class VerifyOTPCodeView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        otp = request.data.get("otp")
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"error": "User does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        
+        if not user.is_2fa_enabled:
+            return Response({"error": "2FA is not enabled for this user."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        totp = pyotp.TOTP(user.totp_key)
+        if totp.verify(otp):
+            return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "OTP is invalid."}, status=status.HTTP_400_BAD_REQUEST)

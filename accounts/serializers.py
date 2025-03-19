@@ -128,7 +128,11 @@ class TOTPEnableDisableSerializer(serializers.Serializer):
         email = data['email']
         enable = data['enable']
 
-        user = User.objects.get(email=email)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"email": "User with this email does not exist."})
+        
         if user.is_2fa_enabled == enable:
             raise serializers.ValidationError(f"2FA is already {'enabled' if enable else 'disabled'}")
         return data
@@ -137,13 +141,11 @@ class TOTPEnableDisableSerializer(serializers.Serializer):
     def save(self):
         email = self.validated_data['email']
         enable = self.validated_data['enable']
-        
-        try:
-            user = User.objects.get(email=email)
-            user.is_2fa_enabled = enable
-            user.save()
-            return user
-        except User.DoesNotExist:
-            raise serializers.ValidationError("User with this email does not exist.")
+    
+        user = User.objects.get(email=email)
+        user.is_2fa_enabled = enable
+        user.save()
+        return user
+
 
         
