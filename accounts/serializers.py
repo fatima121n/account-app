@@ -1,7 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import authenticate
 from rest_framework import serializers
-import pyotp
 from . models import PasswordResetToken, User, generate_token
 
 
@@ -40,31 +39,6 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
 
 
-class PasswordResetVerifySerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    token = serializers.CharField(max_length=6) 
-
-
-    def validate(self, data):
-        email = data['email']
-        token = data['token']
-
-        try:
-           user = User.objects.get(email=email)
-           reset_token = PasswordResetToken.objects.get(user=user, token=token)
-        except ObjectDoesNotExist:
-           raise serializers.ValidationError("Invalid email or token.")
-       
-        token_status = reset_token.verify_token(token)
-        
-        if token_status != "Valid":
-            raise serializers.ValidationError({
-                "token": token_status
-            })
-        
-        return data
-
-
 class PasswordResetConfirmSerializer(serializers.Serializer):
     email = serializers.EmailField()
     token = serializers.CharField(max_length=6) 
@@ -87,8 +61,6 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             })
         return data
         
-    
-
     def save(self):
         email = self.validated_data['email']
         new_password = self.validated_data['new_password']
@@ -120,32 +92,6 @@ class LoginSerializer(serializers.Serializer):
         data['user'] = user
         return data
     
-class TOTPEnableDisableSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
-    enable = serializers.BooleanField(required=True)
-
-    def validate(self, data):
-        email = data['email']
-        enable = data['enable']
-
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            raise serializers.ValidationError({"email": "User with this email does not exist."})
-        
-        if user.is_2fa_enabled == enable:
-            raise serializers.ValidationError(f"2FA is already {'enabled' if enable else 'disabled'}")
-        return data
-
-    
-    def save(self):
-        email = self.validated_data['email']
-        enable = self.validated_data['enable']
-    
-        user = User.objects.get(email=email)
-        user.is_2fa_enabled = enable
-        user.save()
-        return user
 
 
         
