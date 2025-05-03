@@ -4,6 +4,12 @@ from rest_framework import serializers
 from . models import PasswordResetToken, User, generate_token
 
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'username', 'profile_image']
+        read_only_fields = ['id', 'email']
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User

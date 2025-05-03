@@ -50,6 +50,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ),
 }
 
@@ -164,3 +165,6 @@ EMAIL_HOST_USER = '8efe22fbc83e29'  # Replace with Mailtrap's username
 EMAIL_HOST_PASSWORD = '410036d0bb194b'  # Replace with Mailtrap's password
 DEFAULT_FROM_EMAIL = 'admin2@email.com'  # This can be any dummy email
 
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

@@ -1,20 +1,27 @@
 import logging
 from django.urls import reverse
+from django.conf import settings
 from django.core.mail import send_mail
 from django.contrib.auth import login, logout
-from django.conf import settings
-from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
+from rest_framework.generics import RetrieveUpdateAPIView
 from .serializers import PasswordResetRequestSerializer,\
     UserRegistrationSerializer,\
-    PasswordResetConfirmSerializer, LoginSerializer
+    PasswordResetConfirmSerializer, LoginSerializer, UserSerializer
 
 
 logger = logging.getLogger(__name__)
 
+class UserProfileView(RetrieveUpdateAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
 
 class HomePageView(APIView):
     def get(self, request):
@@ -119,5 +126,4 @@ class LogoutView(APIView):
 
         # Return a success response
         return Response({"message": "Logout successful."}, status=status.HTTP_200_OK)
-    # want to update logout. 
     

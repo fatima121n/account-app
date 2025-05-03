@@ -31,6 +31,9 @@ class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
     is_staff = models.BooleanField(default=False)  
     is_superuser = models.BooleanField(default=False) 
+    username = models.CharField(max_length=25, blank=True, null=True)
+    profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
+    
 
     USERNAME_FIELD = 'email'
     objects = UserManager()
