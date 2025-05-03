@@ -4,11 +4,6 @@ from django.conf import settings
 from django.utils import timezone
 import secrets
 import string
-import pyotp 
-
-def generate_totp_key() -> str:
-    return pyotp.random_base32()
-
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -36,8 +31,6 @@ class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
     is_staff = models.BooleanField(default=False)  
     is_superuser = models.BooleanField(default=False) 
-    totp_key = models.CharField(max_length=16, default=generate_totp_key, editable=False)
-    is_2fa_enabled = models.BooleanField(default=False) 
 
     USERNAME_FIELD = 'email'
     objects = UserManager()
