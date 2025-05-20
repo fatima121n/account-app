@@ -42,6 +42,14 @@ class HomePageView(APIView):
             {'name': 'Password Reset Request', 'url': request.build_absolute_uri(reverse('password-reset-request'))},
             {'name': 'Password Reset Confirm', 'url': request.build_absolute_uri(reverse('password-reset-confirm'))},
             {'name': 'Logout', 'url': request.build_absolute_uri(reverse('logout'))},
+
+            # Post URLs
+            {'name': 'Post List', 'url': request.build_absolute_uri(reverse('post-list-create'))},
+            {'name': 'Post Detail', 'url': request.build_absolute_uri(reverse('post-detail', kwargs={'pk': 1}))},
+            {'name': 'Post Comments', 'url': request.build_absolute_uri(reverse('comment-list-create', kwargs={'post_id': 1}))},
+            {'name': 'Post Like Toggle', 'url': request.build_absolute_uri(reverse('toggle-like', kwargs={'post_id': 1}))},
+
+        
         ]
 
         return Response({
