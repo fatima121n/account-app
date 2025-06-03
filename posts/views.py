@@ -1,8 +1,11 @@
+import re
+from urllib import request
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from . serializers import PostSerializer, CommentSerializer, LikeSerializer
 from . models import Post, Comment, Like
+from notifications.models import Notification
 
 
 class PostListCreateView(generics.ListCreateAPIView):
@@ -39,7 +42,19 @@ class CommentListCreateView(generics.ListCreateAPIView):
     
     def perform_create(self, serializer):
         post_id = self.kwargs['post_id']
-        serializer.save(user=self.request.user, post_id=post_id)
+        post = Post.objects.get(id=post_id)
+
+        comment = serializer.save(user=request.user, post=post)
+
+        # Follow Notification
+        if post.author != self.request.user:
+            Notification.objects.create(
+                recipient=post.author,
+                sender=self.request.user,
+                post=post,
+                comment=comment,
+                notification_type='comment'
+            )
 
 class ToggleLikeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -51,6 +66,16 @@ class ToggleLikeView(APIView):
         if not created:
             like.delete()
             return Response({'status': 'unliked'}, status=status.HTTP_200_OK)
+            
+        # Create like Notification
+        if post.author != request.user:
+            Notification.objects.create(
+                recipient=post.author,
+                sender=request.user,
+                post=post,
+                notification_type='like'
+            )
+
         return Response({'status': 'liked'}, status=status.HTTP_201_CREATED)
 
     def delete(self, request, post_id):

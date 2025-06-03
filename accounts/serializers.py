@@ -1,8 +1,9 @@
 from django.core.exceptions import ObjectDoesNotExist
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
-from . models import PasswordResetToken, User, generate_token
+from . models import PasswordResetToken, User, generate_token, Follow
 
+User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -98,6 +99,16 @@ class LoginSerializer(serializers.Serializer):
         data['user'] = user
         return data
     
+
+class FollowSerializer(serializers.ModelSerializer):
+    follower = serializers.StringRelatedField(read_only=True)
+    following = serializers.SlugRelatedField(slug_field='username', queryset=User.objects.all())
+
+    class Meta:
+        model = Follow
+        fields = ['id', 'follower', 'following', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
 
 
         

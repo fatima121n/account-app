@@ -44,7 +44,10 @@ INSTALLED_APPS = [
     'accounts',
     'corsheaders',
     'posts',
+    'notifications',
 ]
+
+SITE_ID = 1
 
 
 REST_FRAMEWORK = {

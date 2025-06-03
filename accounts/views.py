@@ -1,20 +1,25 @@
 import logging
+from urllib import response
 from django.urls import reverse
 from django.conf import settings
 from django.core.mail import send_mail
-from django.contrib.auth import login, logout
-from rest_framework import status
+from django.contrib.auth import login, logout, get_user_model
+from rest_framework import status, generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import RetrieveUpdateAPIView
+from . models import Follow
 from .serializers import PasswordResetRequestSerializer,\
     UserRegistrationSerializer,\
-    PasswordResetConfirmSerializer, LoginSerializer, UserSerializer
+    PasswordResetConfirmSerializer, LoginSerializer, UserSerializer, FollowSerializer
+
+from notifications.models import Notification
 
 
 logger = logging.getLogger(__name__)
+User = get_user_model()
 
 class UserProfileView(RetrieveUpdateAPIView):
     serializer_class = UserSerializer
@@ -134,4 +139,56 @@ class LogoutView(APIView):
 
         # Return a success response
         return Response({"message": "Logout successful."}, status=status.HTTP_200_OK)
-    
+
+class FollowUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, username):
+        try:
+            user_to_follow = User.objects.get(username=username)
+            if user_to_follow == request.user:
+                return Response({"error": "You can't follow yourself."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            follow, created = Follow.objects.get_or_create(
+                follower=request.user, 
+                following=user_to_follow
+            )
+
+            if not created:
+                return Response({"error": "Already following."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Follow notifications
+            Notification.objects.create(
+                recipient=user_to_follow,
+                sender=request.user,
+                notification_type='follow'
+            )
+            
+            
+            return Response({"message": f"You followed {username}."}, status=status.HTTP_201_CREATED)
+        
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        
+
+class UnfollowUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, username):
+        try:
+            user_to_unfollow = User.objects.get(username=username)
+            try:
+                follow = Follow.objects.get(
+                    follower=request.user,
+                    following=user_to_unfollow
+                )
+                follow.delete()
+                return Response({"message": f"You unfollowed {username}."}, status=status.HTTP_200_OK)
+            
+            except Follow.DoesNotExist:
+                return Response({"error": "You're not following this user."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        except User.DoesNotExist:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        
